@@ -67,6 +67,11 @@ void i2c_write_byte(uint8_t val) {
     i2c_write_blocking(i2c_default, addr, &val, 1, false);
 }
 
+/**
+ * Porta da low a high/high a low il pin ENABLE dell'lcd, quando 
+ * questa operazione di clock avviene, il display 
+ * legge e memorizza i dati presenti negli altri pin
+*/
 void lcd_toggle_enable(uint8_t val) {
     // Toggle enable pin on LCD display
     // We cannot do this too quickly or things don't work
@@ -74,7 +79,7 @@ void lcd_toggle_enable(uint8_t val) {
     sleep_us(600);
     i2c_write_byte(val | LCD_ENABLE_BIT);
     sleep_us(600);
-    i2c_write_byte(val & ~LCD_ENABLE_BIT);
+    i2c_write_byte(val & ~LCD_ENABLE_BIT); // ~LCD_ENABLE_BIT inverte tutti i bit di LCD_ENABLE_BIT
     sleep_us(600);
 }
 
@@ -109,20 +114,30 @@ void lcd_string(const char *s) {
     }
 }
 
+/**
+ * Invia la sequenza di reset al display e poi lo configura per la scrittura di testo
+*/
 void lcd_init() {
+	/* Sequenza di reset del display */
     lcd_send_byte(0x03, LCD_COMMAND);
     lcd_send_byte(0x03, LCD_COMMAND);
     lcd_send_byte(0x03, LCD_COMMAND);
+	/* Passaggio alla modalità 4 bit */
     lcd_send_byte(0x02, LCD_COMMAND);
 
+	/* Testo da sx */
     lcd_send_byte(LCD_ENTRYMODESET | LCD_ENTRYLEFT, LCD_COMMAND);
+	/* Modalità 2 righe*/
     lcd_send_byte(LCD_FUNCTIONSET | LCD_2LINE, LCD_COMMAND);
+	/* Display acceso */
     lcd_send_byte(LCD_DISPLAYCONTROL | LCD_DISPLAYON, LCD_COMMAND);
+	
     lcd_clear();
 }
 
 int main(void) {
     // This example will use I2C0 on the default SDA and SCL pins (4, 5 on a Pico)
+	/* Inizializza i2c */
     i2c_init(i2c_default, 100 * 1000);
     gpio_set_function(PICO_DEFAULT_I2C_SDA_PIN, GPIO_FUNC_I2C);
     gpio_set_function(PICO_DEFAULT_I2C_SCL_PIN, GPIO_FUNC_I2C);
@@ -131,6 +146,7 @@ int main(void) {
     // Make the I2C pins available to picotool
     bi_decl(bi_2pins_with_func(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN, GPIO_FUNC_I2C));
 
+	/* Inizializza lcd */
     lcd_init();
 
     static char *message[] =
